@@ -1,37 +1,63 @@
-# === Python virtual environment ===
+# ==========================================
+# 1. Python Environment & Dependency Artifacts
+# ==========================================
 venv/
-.env/
+.venv/
+ENV/
+env/
+bin/
+lib/
+include/
+share/
+pyvenv.cfg
+pip-selfcheck.json
 
-# === Sensitive / local config ===
-.env
-*.env
-!env.example
-# (keep env.example tracked as a template)
-
-# === Editor & OS junk ===
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-
-# === Build / cache / logs ===
-__pycache__/
-*.py[cod]
-*.dist-info/
-*.egg-info/
-*.log
-logs/
+# ==========================================
+# 2. Dynamic Agentic State & Lockfiles (CRITICAL)
+# ==========================================
+*.agent_lock
 *.bak
-.agent_lock
+graph.json
+.agent_log.md
+Agent_Status.md
 
-# === Test / Obsidian vault (if you don't want to commit task notes) ===
+# ==========================================
+# 3. Environment Variables & Secrets (CRITICAL)
+# ==========================================
+.env
+.env*.local
+*.pem
+*.key
+
+# ==========================================
+# 4. Testing Vaults (Prevents vault contamination)
+# ==========================================
 test_vault/
 01_Active_Tasks/
+02_Architecture/
+03_Archive/
 04_Experience/
 
-# === Optional: E2B / sandbox artifacts if created locally ===
-.sandbox/
-sandbox_assets/
+# ==========================================
+# 5. OS Specific Cache Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==========================================
+# 6. Python Runtime & Testing Caches
+# ==========================================
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
