@@ -41,43 +41,62 @@ class TaskWatcher(FileSystemEventHandler):
     def _handle(self, event):
         if getattr(event, "is_directory", False):
             return
-
+            
         path = os.path.normpath(event.src_path)
         if not path.endswith(".md"):
             return
-
+            
         now = time.monotonic()
         last = self.last_triggered.get(path)
         if last is not None and (now - last) < self.debounce_seconds:
             logger.debug("Debounced event for %s", path)
             return
+            
+        # Introduce a tiny 100ms sleep to let Obsidian/Windows flush its initial write lock
+        time.sleep(0.1)
+        
         self.last_triggered[path] = now
-
         logger.info("Processing change for %s", path)
-
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-        except OSError as exc:
-            logger.warning("Could not read %s: %s", path, exc)
-            return
-
+        
+        content = None
+        # Robust Read with retries for Windows locks
+        for attempt in range(5):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                break
+            except OSError as exc:
+                if attempt == 4:
+                    logger.warning("Could not read %s: %s", path, exc)
+                    return
+                # Backoff 100ms before retrying
+                time.sleep(0.1)
+                
         if PENDING_TAG not in content:
             logger.debug("No pending task tag in %s, ignoring", path)
             return
-
+            
         updated = content.replace(PENDING_TAG, ACTIVE_TAG)
-        try:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(updated)
-        except OSError as exc:
-            logger.warning("Could not update %s: %s", path, exc)
-            return
-
-        targets = self._parse_target_files(updated)
-        logger.info("Activated task in %s with %d target(s)", path, len(targets))
-
-        self._enqueue({"file_path": path, "targets": targets})
+        
+        # Robust Write with retries for Windows locks
+        success = False
+        for attempt in range(5):
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(updated)
+                success = True
+                break
+            except OSError as exc:
+                if attempt == 4:
+                    logger.warning("Could not update %s: %s", path, exc)
+                    return
+                # Backoff 100ms before retrying
+                time.sleep(0.1)
+                
+        if success:
+            targets = self._parse_target_files(updated)
+            logger.info("Activated task in %s with %d target(s)", path, len(targets))
+            self._enqueue({"file_path": path, "targets": targets})
 
     def _enqueue(self, item: dict):
         if self.loop is not None:
